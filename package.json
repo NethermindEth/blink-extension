@@ -1,0 +1,38 @@
+{
+  "name": "twitter-blink-extension",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@babel/preset-env": "^7.24.7",
+    "@babel/preset-react": "^7.24.7",
+    "@dialectlabs/blinks": "^0.1.0",
+    "@solana/web3.js": "^1.94.0",
+    "@types/chrome": "^0.0.268",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "typescript": "^5.0.4",
+    "viem": "^2.17.3",
+    "wagmi": "^2.10.10"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.19",
+    "buffer": "^6.0.3",
+    "crypto-browserify": "^3.12.0",
+    "css-loader": "^7.1.2",
+    "postcss-loader": "^8.1.1",
+    "stream-browserify": "^3.0.0",
+    "style-loader": "^4.0.0",
+    "tailwindcss": "^3.4.4",
+    "ts-loader": "^9.2.6",
+    "typescript": "^5.0.4",
+    "webpack": "^5.65.0",
+    "webpack-cli": "^4.9.1"
+  },
+  "scripts": {
+    "build": "webpack --mode production"
+  }
+}
