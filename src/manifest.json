@@ -2,8 +2,8 @@
     "manifest_version": 3,
     "name": "Twitter Blink Unfurler",
     "version": "1.0",
-    "description": "Unfurls specific links on Twitter using Blinks",
-    "permissions": ["activeTab"],
+    "description": "Unfurls Actions on Twitter using Blinks",
+    "permissions": ["activeTab", "storage"],
     "background": {
       "service_worker": "background.js"
     },
