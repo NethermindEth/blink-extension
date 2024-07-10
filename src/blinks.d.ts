@@ -5,5 +5,11 @@ declare module "@dialectlabs/blinks" {
 }
 
 declare module "@dialectlabs/blinks/ext/twitter" {
-  export function setupTwitterObserver(config: any): void;
+  export function setupTwitterObserver(
+    config: any,
+    options?: ObserverOptions
+  ): void;
+  export interface ObserverOptions {
+    securityLevel?: "all" | "only-trusted" | "non-malicious";
+  }
 }

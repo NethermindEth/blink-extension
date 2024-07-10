@@ -1,15 +1,14 @@
 import { ActionConfig } from "@dialectlabs/blinks";
+import { ObserverOptions } from "@dialectlabs/blinks/ext/twitter";
 import { createWalletClient, custom } from "viem";
 import { mainnet } from "viem/chains";
 import "./index.css";
 
 console.log("My Blinks Client: Content script loaded");
 
-declare global {
-  interface Window {
-    ethereum: any;
-  }
-}
+const options: ObserverOptions = {
+  securityLevel: "all", // TODO: Should support only-trusted or non-malicious
+};
 
 function initializeExtension() {
   console.log("Initializing extension");
@@ -30,7 +29,7 @@ function initializeExtension() {
   import("@dialectlabs/blinks/ext/twitter")
     .then(({ setupTwitterObserver }) => {
       console.log("Setting up Twitter observer");
-      setupTwitterObserver(config);
+      setupTwitterObserver(config, options);
       console.log("Twitter observer setup complete");
     })
     .catch((error) => {
