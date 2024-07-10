@@ -1,3 +1,4 @@
+import "@dialectlabs/blinks/index.css";
 import { ActionConfig } from "@dialectlabs/blinks";
 import { ObserverOptions } from "@dialectlabs/blinks/ext/twitter";
 import { createWalletClient, custom } from "viem";
