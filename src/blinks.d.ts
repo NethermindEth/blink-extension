@@ -7,9 +7,17 @@ declare module "@dialectlabs/blinks" {
 declare module "@dialectlabs/blinks/ext/twitter" {
   export function setupTwitterObserver(
     config: any,
+    callbacks?: any,
     options?: ObserverOptions
   ): void;
   export interface ObserverOptions {
-    securityLevel?: "all" | "only-trusted" | "non-malicious";
+    securityLevel:
+      | "all"
+      | "only-trusted"
+      | "non-malicious"
+      | Record<
+          "websites" | "interstitials" | "actions",
+          "all" | "only-trusted" | "non-malicious"
+        >;
   }
 }
