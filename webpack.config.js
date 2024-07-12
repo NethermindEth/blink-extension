@@ -1,10 +1,12 @@
 const path = require('path');
 const webpack = require('webpack');
+const CopyPlugin = require('copy-webpack-plugin');
 
 module.exports = {
     entry: {
         content: './src/content.ts',
-        background: './src/background.ts'
+        background: './src/background.ts',
+        pageScript: './src/pageScript.js'
       },
   module: {
     rules: [
@@ -52,7 +54,13 @@ module.exports = {
     new webpack.NormalModuleReplacementPlugin(
       /node:crypto/,
       require.resolve('crypto-browserify')
-    )
+    ),
+    new CopyPlugin({
+      patterns: [
+        { from: 'src/manifest.json', to: 'manifest.json' },
+        { from: 'src/pageScript.js', to: 'pageScript.js' },
+      ],
+    }),
   ],
   mode: 'production',
   experiments: {
