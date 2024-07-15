@@ -41,6 +41,9 @@ module.exports = {
       "crypto": require.resolve("crypto-browserify"),
       "stream": require.resolve("stream-browserify"),
       "buffer": require.resolve("buffer/")
+    },
+    alias: {
+      '@': path.resolve(__dirname, 'src')
     }
   },
   output: {
