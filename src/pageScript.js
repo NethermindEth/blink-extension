@@ -1,106 +1,91 @@
 import { VersionedTransaction } from "@solana/web3.js";
 
-window.postMessage({ type: "PAGE_SCRIPT_LOADED" }, "*");
-
-let connectedAddress = "";
-
-async function connectWalletEthereum() {
-  console.log("Attempting to connect wallet...");
-  if (typeof window.ethereum === "undefined") {
-    console.error("window.ethereum is undefined in pageScript");
-    return Promise.reject("No Ethereum provider found");
-  }
-  try {
-    const accounts = await window.ethereum.request({
-      method: "eth_requestAccounts",
-    });
-    connectedAddress = accounts[0];
-    return connectedAddress;
-  } catch (error) {
-    console.error("Error in connectWallet:", error);
-    return null;
-  }
-}
-
-async function connectWalletSolana() {
-  if (typeof window.solana === "undefined") {
-    console.error("window.solana is undefined in pageScript");
-    return Promise.reject("No Solana provider found");
-  }
-  try {
-    const response = await window.solana.connect();
-    connectedAddress = response.publicKey.toString();
-    return connectedAddress;
-  } catch (error) {
-    console.error("Error in connectWalletSolana:", error);
-    return null;
-  }
-}
-
-window.postMessage({ type: "ETHEREUM_READY" }, "*");
-
-window.addEventListener("message", async (event) => {
-  if (event.data.type === "CONNECT_WALLET_ETHEREUM") {
-    try {
-      const account = await connectWalletEthereum();
-      window.postMessage({ type: "WALLET_CONNECTED_ETHEREUM", account }, "*");
-    } catch (error) {
-      console.error("Error in message handler:", error);
-      window.postMessage(
-        { type: "WALLET_CONNECTION_ERROR_ETHEREUM", error: error.message },
-        "*"
-      );
-    }
-  } else if (event.data.type === "SIGN_TRANSACTION_ETHEREUM") {
-    try {
-      if (!connectedAddress) {
-        connectedAddress = await connectWalletEthereum();
+// Wallet connection handlers
+const walletHandlers = {
+  ethereum: {
+    connect: async () => {
+      if (typeof window.ethereum === "undefined") {
+        throw new Error("No Ethereum provider found");
       }
-      const transaction = JSON.parse(event.data.transaction);
+      const accounts = await window.ethereum.request({
+        method: "eth_requestAccounts",
+      });
+      return accounts[0];
+    },
+    sign: async (transaction, address) => {
       const transactionParameters = {
         to: transaction.to,
-        from: connectedAddress,
+        from: address,
         value: transaction.value,
       };
-
-      const txHash = await window.ethereum.request({
+      return window.ethereum.request({
         method: "eth_sendTransaction",
         params: [transactionParameters],
       });
-
-      window.postMessage({ type: "TRANSACTION_SIGNED", txHash }, "*");
-    } catch (error) {
-      console.error("Error signing transaction:", error);
-      window.postMessage(
-        { type: "TRANSACTION_SIGN_ERROR", error: error.message },
-        "*"
-      );
-    }
-  } else if (event.data.type === "CONNECT_WALLET_SOLANA") {
-    try {
-      const account = await connectWalletSolana();
-      window.postMessage({ type: "WALLET_CONNECTED_SOLANA", account }, "*");
-    } catch (error) {
-      console.error("Error in message handler:", error);
-      window.postMessage(
-        { type: "WALLET_CONNECTION_ERROR_SOLANA", error: error.message },
-        "*"
-      );
-    }
-  } else if (event.data.type === "SIGN_TRANSACTION_SOLANA") {
-    try {
-      if (!connectedAddress) {
-        connectedAddress = await connectWalletSolana();
+    },
+  },
+  solana: {
+    connect: async () => {
+      if (typeof window.solana === "undefined") {
+        throw new Error("No Solana provider found");
       }
+      const response = await window.solana.connect();
+      return response.publicKey.toString();
+    },
+    sign: async (transaction) => {
       const tx = VersionedTransaction.deserialize(
-        Buffer.from(event.data.transaction, "base64")
+        Buffer.from(transaction, "base64")
       );
-      const { signature } = await window.solana.signTransaction(tx);
-      window.postMessage({ type: "TRANSACTION_SIGNED_SOLANA", signature }, "*");
+      return window.solana.signTransaction(tx);
+    },
+  },
+};
+
+// Message handling
+const messageHandlers = {
+  CONNECT_WALLET_ETHEREUM: async () => {
+    const account = await walletHandlers.ethereum.connect();
+    return { type: "WALLET_CONNECTED_ETHEREUM", account };
+  },
+  CONNECT_WALLET_SOLANA: async () => {
+    const account = await walletHandlers.solana.connect();
+    return { type: "WALLET_CONNECTED_SOLANA", account };
+  },
+  SIGN_TRANSACTION_ETHEREUM: async (data) => {
+    if (!connectedAddress) {
+      connectedAddress = await walletHandlers.ethereum.connect();
+    }
+    const transaction = JSON.parse(data.transaction);
+    const txHash = await walletHandlers.ethereum.sign(transaction, connectedAddress);
+    return { type: "TRANSACTION_SIGNED", txHash };
+  },
+  SIGN_TRANSACTION_SOLANA: async (data) => {
+    if (!connectedAddress) {
+      connectedAddress = await walletHandlers.solana.connect();
+    }
+    const { signature } = await walletHandlers.solana.sign(data.transaction);
+    return { type: "TRANSACTION_SIGNED_SOLANA", signature };
+  },
+};
+
+// Global state
+let connectedAddress = "";
+
+// Initialize
+window.postMessage({ type: "PAGE_SCRIPT_LOADED" }, "*");
+window.postMessage({ type: "ETHEREUM_READY" }, "*");
+
+// Message listener
+window.addEventListener("message", async (event) => {
+  const { type, ...data } = event.data;
+  if (type in messageHandlers) {
+    try {
+      const response = await messageHandlers[type](data);
+      window.postMessage(response, "*");
     } catch (error) {
-      console.error("Error signing transaction:", error);
+      console.error(`Error in ${type} handler:`, error);
       window.postMessage(
-        { type: "TRANSACTION_SIGN_ERROR_SOLANA", error: error.message },
+        { type: `${type}_ERROR`, error: error.message },
         "*"
       );
     }
