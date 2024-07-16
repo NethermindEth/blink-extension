@@ -54,7 +54,7 @@ window.addEventListener("message", async (event) => {
   } else if (event.data.type === "SIGN_TRANSACTION_ETHEREUM") {
     try {
       if (!connectedAddress) {
-        throw new Error("Wallet not connected");
+        connectedAddress = await connectWalletEthereum();
       }
       const transaction = JSON.parse(event.data.transaction);
       const transactionParameters = {
@@ -90,7 +90,7 @@ window.addEventListener("message", async (event) => {
   } else if (event.data.type === "SIGN_TRANSACTION_SOLANA") {
     try {
       if (!connectedAddress) {
-        throw new Error("Wallet not connected");
+        connectedAddress = await connectWalletSolana();
       }
       const tx = VersionedTransaction.deserialize(
         Buffer.from(event.data.transaction, "base64")

@@ -7,7 +7,7 @@ import {
 } from "./utils/twitter";
 import { ActionsURLMapper, type ActionsJsonConfig } from "./utils/url-mapper";
 import { isInterstitial } from "./utils/interstitial-url";
-import { ObserverOptions } from "@dialectlabs/blinks/ext/twitter";
+import { setupTwitterObserver, ObserverOptions } from "./twitterObserver";
 import { parseEther } from "viem";
 
 import "./index.css";
@@ -54,14 +54,8 @@ async function initializeExtension() {
     "https://eth-mainnet.g.alchemy.com/v2/<replace with id>",
     {
       signTransaction: async (tx: string) => {
-        console.log("Transaction to sign:", tx);
         if (!pageScriptLoaded) {
-          console.error("Page script not loaded yet");
           throw new Error("Ethereum not loaded");
-        }
-        if (!connectedAddress) {
-          console.error("Wallet not connected");
-          throw new Error("Wallet not connected");
         }
 
         const transaction = JSON.parse(tx);
@@ -74,7 +68,7 @@ async function initializeExtension() {
         return new Promise((resolve, reject) => {
           const timeout = setTimeout(() => {
             reject(new Error("Transaction signing timed out"));
-          }, 30000); // 30 second timeout
+          }, 60000); // 60 second timeout
 
           const handler = (event: MessageEvent) => {
             if (event.data.type === "TRANSACTION_SIGNED_ETHEREUM") {
@@ -101,7 +95,6 @@ async function initializeExtension() {
       },
       connect: async () => {
         if (!pageScriptLoaded) {
-          console.error("Page script not loaded yet");
           throw new Error("Solana not loaded");
         }
         window.postMessage({ type: "CONNECT_WALLET_ETHEREUM" }, "*");
@@ -129,7 +122,6 @@ async function initializeExtension() {
   class SolanaActionAdapter implements ActionAdapter {
     async connect(): Promise<string | null> {
       if (!pageScriptLoaded) {
-        console.error("Page script not loaded yet");
         throw new Error("Page script not loaded");
       }
       window.postMessage({ type: "CONNECT_WALLET_SOLANA" }, "*");
@@ -154,8 +146,6 @@ async function initializeExtension() {
     async signTransaction(
       tx: string
     ): Promise<{ signature: string } | { error: string }> {
-      console.log("Signing transaction:", tx);
-
       return new Promise((resolve, reject) => {
         const timeout = setTimeout(() => {
           reject(new Error("Transaction signing timed out"));
@@ -189,87 +179,12 @@ async function initializeExtension() {
     }
   }
 
-  // Use a dynamic import for the Twitter module
-  import("@dialectlabs/blinks/ext/twitter")
-    .then(({ setupTwitterObserver }) => {
-      const twitterReactRoot = document.getElementById("react-root")!;
-
-      const observer = new MutationObserver((mutations) => {
-        // it's fast to iterate like this
-        for (let i = 0; i < mutations.length; i++) {
-          const mutation = mutations[i];
-          for (let j = 0; j < mutation.addedNodes.length; j++) {
-            const node = mutation.addedNodes[j];
-            if (node.nodeType !== Node.ELEMENT_NODE) {
-              return;
-            }
-            fetchAction(node as Element).catch(() => {});
-          }
-        }
-      });
-
-      const fetchAction = async (node: Element) => {
-        try {
-          const element = node as Element;
-          // first quick filtration
-          if (!element || element.localName !== "div") {
-            return;
-          }
-          const rootElement = findElementByTestId(element, "card.wrapper");
-          if (!rootElement) {
-            return;
-          }
-          // handle link preview only, assuming that link preview is a must for actions
-          const linkPreview = rootElement.children[0] as HTMLDivElement;
-          if (!linkPreview) {
-            return;
-          }
-
-          const anchor = linkPreview.children[0] as HTMLAnchorElement;
-          const shortenedUrl = anchor.href;
-          const actionUrl = await resolveTwitterShortenedUrl(shortenedUrl);
-
-          const interstitialData = isInterstitial(actionUrl);
-
-          let actionApiUrl: string | null;
-          if (interstitialData.isInterstitial) {
-            actionApiUrl = interstitialData.decodedActionUrl;
-          } else {
-            const actionsJsonUrl = actionUrl.origin + "/actions.json";
-            const actionsJson = await fetch(proxify(actionsJsonUrl)).then(
-              (res) => res.json() as Promise<ActionsJsonConfig>
-            );
-
-            const actionsUrlMapper = new ActionsURLMapper(actionsJson);
-            actionApiUrl = actionsUrlMapper.mapUrl(actionUrl);
-          }
-          console.log("actionApiUrl", actionApiUrl);
-          if (actionApiUrl) {
-            const actionJson = await fetch(proxify(actionApiUrl)).then((res) =>
-              res.json()
-            );
-
-            if (actionJson.isEthereum) {
-              setupTwitterObserver(ethereumActionConfig, {}, options);
-            } else {
-              setupTwitterObserver(new SolanaActionAdapter(), {}, options);
-            }
-          }
-        } catch (error) {
-          console.error("Error in fetchAction:", error);
-        }
-      };
-
-      observer.observe(twitterReactRoot, {
-        childList: true,
-        subtree: true,
-      });
-
-      console.log("Twitter observer setup complete");
-    })
-    .catch((error) => {
-      console.error("Failed to load Twitter observer:", error);
-    });
+  setupTwitterObserver(
+    ethereumActionConfig,
+    new SolanaActionAdapter(),
+    {},
+    options
+  );
 }
 
 if (document.readyState === "loading") {
@@ -277,5 +192,3 @@ if (document.readyState === "loading") {
 } else {
   initializeExtension();
 }
-
-console.log("Content script loaded and running");
