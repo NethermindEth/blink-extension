@@ -1,16 +1,9 @@
 import { ActionAdapter } from "@dialectlabs/blinks";
-import { parseEther } from "viem";
 
 export class EthereumAdapter implements ActionAdapter {
   async signTransaction(
     tx: string
   ): Promise<{ signature: string } | { error: string }> {
-    const transaction = JSON.parse(tx);
-    const transactionParameters = {
-      to: transaction.to,
-      value: parseEther(transaction.value).toString(16), // Convert to hex
-    };
-
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
         reject(new Error("Transaction signing timed out"));
@@ -33,7 +26,7 @@ export class EthereumAdapter implements ActionAdapter {
       window.postMessage(
         {
           type: "SIGN_TRANSACTION_ETHEREUM",
-          transaction: JSON.stringify(transactionParameters),
+          transaction: tx,
         },
         "*"
       );

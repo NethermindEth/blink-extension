@@ -1,4 +1,5 @@
 import { VersionedTransaction } from "@solana/web3.js";
+import { parseTransaction } from 'viem';
 
 // Wallet connection handlers
 const walletHandlers = {
@@ -12,12 +13,15 @@ const walletHandlers = {
       });
       return accounts[0];
     },
-    sign: async (transaction, address) => {
+    sign: async (serializedTx) => {
+      const tx = parseTransaction(serializedTx);
       const transactionParameters = {
-        to: transaction.to,
-        from: address,
-        value: transaction.value,
+        from: connectedAddress,
+        to: tx.to,
+        value: tx.value,
+        data: tx.data,
       };
+  
       return window.ethereum.request({
         method: "eth_sendTransaction",
         params: [transactionParameters],
@@ -55,8 +59,7 @@ const messageHandlers = {
     if (!connectedAddress) {
       connectedAddress = await walletHandlers.ethereum.connect();
     }
-    const transaction = JSON.parse(data.transaction);
-    const txHash = await walletHandlers.ethereum.sign(transaction, connectedAddress);
+    const txHash = await walletHandlers.ethereum.sign(data.transaction);
     return { type: "TRANSACTION_SIGNED", txHash };
   },
   SIGN_TRANSACTION_SOLANA: async (data) => {
