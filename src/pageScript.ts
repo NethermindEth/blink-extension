@@ -1,8 +1,30 @@
 import { VersionedTransaction } from "@solana/web3.js";
 import { parseTransaction } from 'viem';
 
-// Wallet connection handlers
-const walletHandlers = {
+// Interfaces for the wallet handlers
+interface EthereumHandlers {
+  connect: () => Promise<string>;
+  sign: (serializedTx: `0x${string}`) => Promise<string>;
+}
+
+interface SolanaHandlers {
+  connect: () => Promise<string>;
+  sign: (transaction: string) => Promise<any>;
+}
+
+interface WalletHandlers {
+  ethereum: EthereumHandlers;
+  solana: SolanaHandlers;
+}
+
+interface MessageHandlers {
+  CONNECT_WALLET_ETHEREUM: () => Promise<{ type: string; account: string }>;
+  CONNECT_WALLET_SOLANA: () => Promise<{ type: string; account: string }>;
+  SIGN_TRANSACTION_ETHEREUM: (data: { transaction: `0x${string}` }) => Promise<{ type: string; txHash: string }>;
+  SIGN_TRANSACTION_SOLANA: (data: { transaction: string }) => Promise<{ type: string; signature: any }>;
+}
+
+const walletHandlers: WalletHandlers = {
   ethereum: {
     connect: async () => {
       if (typeof window.ethereum === "undefined") {
@@ -13,11 +35,11 @@ const walletHandlers = {
       });
       return accounts[0];
     },
-    sign: async (serializedTx) => {
+    sign: async (serializedTx: `0x${string}`) => {
       const tx = parseTransaction(serializedTx);
       const transactionParameters = {
         from: connectedAddress,
-        to: tx.to,
+        to: tx.to as `0x${string}`,
         value: tx.value,
         data: tx.data,
       };
@@ -36,7 +58,7 @@ const walletHandlers = {
       const response = await window.solana.connect();
       return response.publicKey.toString();
     },
-    sign: async (transaction) => {
+    sign: async (transaction: string) => {
       const tx = VersionedTransaction.deserialize(
         Buffer.from(transaction, "base64")
       );
@@ -45,8 +67,7 @@ const walletHandlers = {
   },
 };
 
-// Message handling
-const messageHandlers = {
+const messageHandlers: MessageHandlers = {
   CONNECT_WALLET_ETHEREUM: async () => {
     const account = await walletHandlers.ethereum.connect();
     return { type: "WALLET_CONNECTED_ETHEREUM", account };
@@ -55,14 +76,14 @@ const messageHandlers = {
     const account = await walletHandlers.solana.connect();
     return { type: "WALLET_CONNECTED_SOLANA", account };
   },
-  SIGN_TRANSACTION_ETHEREUM: async (data) => {
+  SIGN_TRANSACTION_ETHEREUM: async (data: { transaction: `0x${string}` }) => {
     if (!connectedAddress) {
       connectedAddress = await walletHandlers.ethereum.connect();
     }
     const txHash = await walletHandlers.ethereum.sign(data.transaction);
     return { type: "TRANSACTION_SIGNED", txHash };
   },
-  SIGN_TRANSACTION_SOLANA: async (data) => {
+  SIGN_TRANSACTION_SOLANA: async (data: { transaction: string }) => {
     if (!connectedAddress) {
       connectedAddress = await walletHandlers.solana.connect();
     }
@@ -72,23 +93,23 @@ const messageHandlers = {
 };
 
 // Global state
-let connectedAddress = "";
+let connectedAddress: string = "";
 
 // Initialize
 window.postMessage({ type: "PAGE_SCRIPT_LOADED" }, "*");
 window.postMessage({ type: "ETHEREUM_READY" }, "*");
 
 // Message listener
-window.addEventListener("message", async (event) => {
+window.addEventListener("message", async (event: MessageEvent) => {
   const { type, ...data } = event.data;
   if (type in messageHandlers) {
     try {
-      const response = await messageHandlers[type](data);
+      const response = await messageHandlers[type as keyof MessageHandlers](data);
       window.postMessage(response, "*");
     } catch (error) {
       console.error(`Error in ${type} handler:`, error);
       window.postMessage(
-        { type: `${type}_ERROR`, error: error.message },
+        { type: `${type}_ERROR`, error: (error as Error).message },
         "*"
       );
     }
