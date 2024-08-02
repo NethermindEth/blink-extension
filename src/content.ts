@@ -1,6 +1,10 @@
 import "@dialectlabs/blinks/index.css";
-import { setupTwitterObserver, ObserverOptions } from "./twitterObserver";
-import { EthereumAdapter, SolanaActionAdapter } from "./adapters";
+import {
+  EthereumAdapter,
+  SolanaActionAdapter,
+  StarknetActionAdapter,
+} from "./adapters";
+import { ObserverOptions, setupTwitterObserver } from "./twitterObserver";
 
 import "./index.css";
 
@@ -8,6 +12,7 @@ declare global {
   interface Window {
     ethereum: any;
     solana: any;
+    starknet: any;
   }
 }
 
@@ -45,6 +50,7 @@ async function initializeExtension() {
   setupTwitterObserver(
     new EthereumAdapter(),
     new SolanaActionAdapter(),
+    new StarknetActionAdapter(),
     {},
     OPTIONS
   );

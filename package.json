@@ -12,8 +12,10 @@
     "@dialectlabs/blinks": "^0.4.7",
     "@solana/web3.js": "^1.94.0",
     "@types/chrome": "^0.0.268",
+    "get-starknet": "^3.3.2",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "starknet": "^6.12.1",
     "typescript": "^5.0.4",
     "viem": "^2.17.3",
     "wagmi": "^2.10.10"
