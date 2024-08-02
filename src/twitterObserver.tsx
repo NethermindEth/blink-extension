@@ -63,6 +63,7 @@ const normalizeOptions = (
 export function setupTwitterObserver(
   ethereumActionConfig: ActionAdapter,
   solanaActionConfig: ActionAdapter,
+  starknetActionConfig: ActionAdapter,
   callbacks: Partial<ActionCallbacksConfig> = {},
   options: Partial<ObserverOptions> = DEFAULT_OPTIONS
 ) {
@@ -89,6 +90,7 @@ export function setupTwitterObserver(
             node as Element,
             ethereumActionConfig,
             solanaActionConfig,
+            starknetActionConfig,
             callbacks,
             mergedOptions
           ).catch(() => {});
@@ -104,6 +106,7 @@ async function handleNewNode(
   node: Element,
   ethereumActionConfig: ActionAdapter,
   solanaActionConfig: ActionAdapter,
+  starknetActionConfig: ActionAdapter,
   callbacks: Partial<ActionCallbacksConfig>,
   options: NormalizedObserverOptions
 ) {
@@ -150,6 +153,10 @@ async function handleNewNode(
 
     if (actionJson.isEthereum) {
       action = await Action.fetch(actionApiUrl, ethereumActionConfig).catch(
+        () => null
+      );
+    } else if (actionJson.isStarknet) {
+      action = await Action.fetch(actionApiUrl, starknetActionConfig).catch(
         () => null
       );
     } else {
