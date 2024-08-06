@@ -1,6 +1,9 @@
 import { VersionedTransaction } from "@solana/web3.js";
 import { parseTransaction } from 'viem';
 
+// Expected chain ID (for example, Ethereum Mainnet is "0x1")
+const EXPECTED_CHAIN_ID = "0x2105";
+
 // Wallet connection handlers
 const walletHandlers = {
   ethereum: {
@@ -8,6 +11,27 @@ const walletHandlers = {
       if (typeof window.ethereum === "undefined") {
         throw new Error("No Ethereum provider found");
       }
+      
+      // Check the current chain ID
+      const currentChainId = await window.ethereum.request({ method: 'eth_chainId' });
+      
+      // If not on the expected chain, switch to it
+      if (currentChainId !== EXPECTED_CHAIN_ID) {
+        try {
+          await window.ethereum.request({
+            method: "wallet_switchEthereumChain",
+            params: [{ chainId: EXPECTED_CHAIN_ID }]
+          });
+        } catch (switchError) {
+          // This error code indicates that the chain has not been added to MetaMask
+          if (switchError.code === 4902) {
+            throw new Error("This network is not available in your MetaMask, please add it manually");
+          }
+          throw switchError;
+        }
+      }
+
+      // Request accounts
       const accounts = await window.ethereum.request({
         method: "eth_requestAccounts",
       });
