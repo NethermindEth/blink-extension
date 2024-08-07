@@ -10,12 +10,12 @@
     "@babel/preset-env": "^7.24.7",
     "@babel/preset-react": "^7.24.7",
     "@dialectlabs/blinks": "^0.4.7",
-    "@solana/web3.js": "^1.94.0",
+    "@solana/web3.js": "^1.95.2",
     "@types/chrome": "^0.0.268",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "typescript": "^5.0.4",
-    "viem": "^2.17.3",
+    "viem": "^2.19.1",
     "wagmi": "^2.10.10"
   },
   "devDependencies": {

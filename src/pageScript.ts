@@ -1,10 +1,10 @@
 import { VersionedTransaction } from "@solana/web3.js";
-import { parseTransaction } from 'viem';
+import { parseTransaction, Address } from 'viem';
 
 // Interfaces for the wallet handlers
 interface EthereumHandlers {
-  connect: () => Promise<string>;
-  sign: (serializedTx: `0x${string}`) => Promise<string>;
+  connect: () => Promise<Address>;
+  sign: (serializedTx: Address) => Promise<string>;
 }
 
 interface SolanaHandlers {
@@ -18,32 +18,32 @@ interface WalletHandlers {
 }
 
 interface MessageHandlers {
-  CONNECT_WALLET_ETHEREUM: () => Promise<{ type: string; account: string }>;
+  CONNECT_WALLET_ETHEREUM: () => Promise<{ type: string; account: Address }>;
   CONNECT_WALLET_SOLANA: () => Promise<{ type: string; account: string }>;
-  SIGN_TRANSACTION_ETHEREUM: (data: { transaction: `0x${string}` }) => Promise<{ type: string; txHash: string }>;
+  SIGN_TRANSACTION_ETHEREUM: (data: { transaction: Address }) => Promise<{ type: string; txHash: string }>;
   SIGN_TRANSACTION_SOLANA: (data: { transaction: string }) => Promise<{ type: string; signature: any }>;
 }
 
 const walletHandlers: WalletHandlers = {
   ethereum: {
-    connect: async () => {
+    connect: async (): Promise<Address> => {
       if (typeof window.ethereum === "undefined") {
         throw new Error("No Ethereum provider found");
       }
       const accounts = await window.ethereum.request({
         method: "eth_requestAccounts",
       });
-      return accounts[0];
+      return accounts[0] as Address;
     },
-    sign: async (serializedTx: `0x${string}`) => {
+    sign: async (serializedTx: Address): Promise<string> => {
       const tx = parseTransaction(serializedTx);
       const transactionParameters = {
-        from: connectedAddress,
-        to: tx.to as `0x${string}`,
+        from: connectedAddress as Address,
+        to: tx.to as Address,
         value: tx.value,
         data: tx.data,
       };
-  
+
       return window.ethereum.request({
         method: "eth_sendTransaction",
         params: [transactionParameters],
@@ -51,14 +51,14 @@ const walletHandlers: WalletHandlers = {
     },
   },
   solana: {
-    connect: async () => {
+    connect: async (): Promise<string> => {
       if (typeof window.solana === "undefined") {
         throw new Error("No Solana provider found");
       }
       const response = await window.solana.connect();
       return response.publicKey.toString();
     },
-    sign: async (transaction: string) => {
+    sign: async (transaction: string): Promise<any> => {
       const tx = VersionedTransaction.deserialize(
         Buffer.from(transaction, "base64")
       );
@@ -76,7 +76,7 @@ const messageHandlers: MessageHandlers = {
     const account = await walletHandlers.solana.connect();
     return { type: "WALLET_CONNECTED_SOLANA", account };
   },
-  SIGN_TRANSACTION_ETHEREUM: async (data: { transaction: `0x${string}` }) => {
+  SIGN_TRANSACTION_ETHEREUM: async (data: { transaction: Address }) => {
     if (!connectedAddress) {
       connectedAddress = await walletHandlers.ethereum.connect();
     }
@@ -85,7 +85,7 @@ const messageHandlers: MessageHandlers = {
   },
   SIGN_TRANSACTION_SOLANA: async (data: { transaction: string }) => {
     if (!connectedAddress) {
-      connectedAddress = await walletHandlers.solana.connect();
+      connectedAddress = await walletHandlers.solana.connect() as Address;
     }
     const { signature } = await walletHandlers.solana.sign(data.transaction);
     return { type: "TRANSACTION_SIGNED_SOLANA", signature };
@@ -93,7 +93,7 @@ const messageHandlers: MessageHandlers = {
 };
 
 // Global state
-let connectedAddress: string = "";
+let connectedAddress: Address;
 
 // Initialize
 window.postMessage({ type: "PAGE_SCRIPT_LOADED" }, "*");
