@@ -1,5 +1,10 @@
 import { VersionedTransaction } from "@solana/web3.js";
-import { parseTransaction, Address } from 'viem';
+import { connect as starkConnect } from "get-starknet";
+import { parseTransaction } from "viem";
+
+// Global state
+let connectedAddress = "";
+let starknetAccount = null;
 
 // Interfaces for the wallet handlers
 interface EthereumHandlers {
@@ -65,9 +70,35 @@ const walletHandlers: WalletHandlers = {
       return window.solana.signTransaction(tx);
     },
   },
+  starknet: {
+    connect: async () => {
+      if (typeof window.starknet === "undefined") {
+        throw new Error("No Starknet provider found");
+      }
+
+      starknetAccount = await starkConnect();
+
+      starknetAccount.account.execute();
+      if (!starknetAccount) {
+        throw new Error("No Starknet account found");
+      }
+
+      return starknetAccount.selectedAddress || starknetAccount.account.address;
+    },
+
+    sign: async (transaction) => {
+      const tx = JSON.parse(transaction);
+
+      const { transaction_hash: txHash } =
+        await starknetAccount.account.execute(tx);
+
+      return txHash;
+    },
+  },
 };
 
-const messageHandlers: MessageHandlers = {
+// Message handling
+const messageHandlers = {
   CONNECT_WALLET_ETHEREUM: async () => {
     const account = await walletHandlers.ethereum.connect();
     return { type: "WALLET_CONNECTED_ETHEREUM", account };
@@ -76,7 +107,11 @@ const messageHandlers: MessageHandlers = {
     const account = await walletHandlers.solana.connect();
     return { type: "WALLET_CONNECTED_SOLANA", account };
   },
-  SIGN_TRANSACTION_ETHEREUM: async (data: { transaction: Address }) => {
+  CONNECT_WALLET_STARKNET: async () => {
+    const account = await walletHandlers.starknet.connect();
+    return { type: "WALLET_CONNECTED_STARKNET", account };
+  },
+  SIGN_TRANSACTION_ETHEREUM: async (data) => {
     if (!connectedAddress) {
       connectedAddress = await walletHandlers.ethereum.connect();
     }
@@ -90,10 +125,14 @@ const messageHandlers: MessageHandlers = {
     const { signature } = await walletHandlers.solana.sign(data.transaction);
     return { type: "TRANSACTION_SIGNED_SOLANA", signature };
   },
+  SIGN_TRANSACTION_STARKNET: async (data) => {
+    if (!starknetAccount) {
+      starknetAccount = await walletHandlers.starknet.connect();
+    }
+    const txHash = await walletHandlers.starknet.sign(data.transaction);
+    return { type: "TRANSACTION_SIGNED_STARKNET", txHash };
+  },
 };
-
-// Global state
-let connectedAddress: Address;
 
 // Initialize
 window.postMessage({ type: "PAGE_SCRIPT_LOADED" }, "*");
@@ -108,10 +147,7 @@ window.addEventListener("message", async (event: MessageEvent) => {
       window.postMessage(response, "*");
     } catch (error) {
       console.error(`Error in ${type} handler:`, error);
-      window.postMessage(
-        { type: `${type}_ERROR`, error: (error as Error).message },
-        "*"
-      );
+      window.postMessage({ type: `${type}_ERROR`, error: error.message }, "*");
     }
   }
 });
