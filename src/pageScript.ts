@@ -9,10 +9,20 @@ let starknetAccount: any = null;
 // Wallet connection handlers
 const walletHandlers = {
   ethereum: {
-    connect: async () => {
+    connect: async (chain: string) => {
       if (typeof window.ethereum === "undefined") {
         throw new Error("No Ethereum provider found");
       }
+
+      await window.ethereum.request({
+        method: "wallet_switchEthereumChain",
+        params: [
+          {
+            chainId: chain || "0x1",
+          },
+        ],
+      });
+
       const accounts = await window.ethereum.request({
         method: "eth_requestAccounts",
       });
@@ -77,8 +87,8 @@ const walletHandlers = {
 
 // Message handling
 const messageHandlers = {
-  CONNECT_WALLET_ETHEREUM: async () => {
-    const account = await walletHandlers.ethereum.connect();
+  CONNECT_WALLET_ETHEREUM: async (data: { chain: string }) => {
+    const account = await walletHandlers.ethereum.connect(data.chain);
     return { type: "WALLET_CONNECTED_ETHEREUM", account };
   },
   CONNECT_WALLET_SOLANA: async () => {
@@ -89,9 +99,12 @@ const messageHandlers = {
     const account = await walletHandlers.starknet.connect();
     return { type: "WALLET_CONNECTED_STARKNET", account };
   },
-  SIGN_TRANSACTION_ETHEREUM: async (data: { transaction: `0x${string}` }) => {
+  SIGN_TRANSACTION_ETHEREUM: async (data: {
+    transaction: `0x${string}`;
+    chain: string;
+  }) => {
     if (!connectedAddress) {
-      connectedAddress = await walletHandlers.ethereum.connect();
+      connectedAddress = await walletHandlers.ethereum.connect(data.chain);
     }
     const txHash = await walletHandlers.ethereum.sign(data.transaction);
     return { type: "TRANSACTION_SIGNED", txHash };

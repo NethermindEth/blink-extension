@@ -1,6 +1,11 @@
 import { ActionAdapter } from "@dialectlabs/blinks";
 
 export class EthereumAdapter implements ActionAdapter {
+  private chain: string;
+
+  constructor(chain: string) {
+    this.chain = chain;
+  }
   async signTransaction(
     tx: string
   ): Promise<{ signature: string } | { error: string }> {
@@ -27,6 +32,7 @@ export class EthereumAdapter implements ActionAdapter {
         {
           type: "SIGN_TRANSACTION_ETHEREUM",
           transaction: tx,
+          chain: this.chain,
         },
         "*"
       );
@@ -34,7 +40,10 @@ export class EthereumAdapter implements ActionAdapter {
   }
 
   async connect(): Promise<string | null> {
-    window.postMessage({ type: "CONNECT_WALLET_ETHEREUM" }, "*");
+    window.postMessage(
+      { type: "CONNECT_WALLET_ETHEREUM", chain: this.chain },
+      "*"
+    );
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(() => {
         reject(new Error("Wallet connection timed out"));

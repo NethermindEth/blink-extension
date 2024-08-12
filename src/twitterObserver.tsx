@@ -10,6 +10,7 @@ import {
 import { ActionsURLMapper, type ActionsJsonConfig } from "./utils/url-mapper";
 import { isInterstitial } from "./utils/interstitial-url";
 import { proxify } from "./utils/proxify";
+import { EthereumAdapter } from "./adapters";
 
 export type SecurityLevel = "only-trusted" | "non-malicious" | "all";
 type ObserverSecurityLevel = SecurityLevel;
@@ -61,7 +62,6 @@ const normalizeOptions = (
 };
 
 export function setupTwitterObserver(
-  ethereumActionConfig: ActionAdapter,
   solanaActionConfig: ActionAdapter,
   starknetActionConfig: ActionAdapter,
   callbacks: Partial<ActionCallbacksConfig> = {},
@@ -88,7 +88,6 @@ export function setupTwitterObserver(
           }
           handleNewNode(
             node as Element,
-            ethereumActionConfig,
             solanaActionConfig,
             starknetActionConfig,
             callbacks,
@@ -104,7 +103,6 @@ export function setupTwitterObserver(
 
 async function handleNewNode(
   node: Element,
-  ethereumActionConfig: ActionAdapter,
   solanaActionConfig: ActionAdapter,
   starknetActionConfig: ActionAdapter,
   callbacks: Partial<ActionCallbacksConfig>,
@@ -152,6 +150,7 @@ async function handleNewNode(
     );
 
     if (actionJson.isEthereum) {
+      const ethereumActionConfig = new EthereumAdapter(actionJson.chain);
       action = await Action.fetch(actionApiUrl, ethereumActionConfig).catch(
         () => null
       );

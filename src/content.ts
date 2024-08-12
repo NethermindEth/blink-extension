@@ -1,9 +1,5 @@
 import "@dialectlabs/blinks/index.css";
-import {
-  EthereumAdapter,
-  SolanaActionAdapter,
-  StarknetActionAdapter,
-} from "./adapters";
+import { SolanaActionAdapter, StarknetActionAdapter } from "./adapters";
 import { ObserverOptions, setupTwitterObserver } from "./twitterObserver";
 
 import "./index.css";
@@ -47,7 +43,6 @@ injectScript("pageScript.js");
 
 async function initializeExtension() {
   setupTwitterObserver(
-    new EthereumAdapter(),
     new SolanaActionAdapter(),
     new StarknetActionAdapter(),
     {},
