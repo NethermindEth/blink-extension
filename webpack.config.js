@@ -6,7 +6,7 @@ module.exports = {
     entry: {
         content: './src/content.ts',
         background: './src/background.ts',
-        pageScript: './src/pageScript.js'
+        pageScript: './src/pageScript.ts'
       },
   module: {
     rules: [
@@ -61,7 +61,7 @@ module.exports = {
     new CopyPlugin({
       patterns: [
         { from: 'src/manifest.json', to: 'manifest.json' },
-        { from: 'src/pageScript.js', to: 'pageScript.js' },
+        { from: 'src/pageScript.ts', to: 'pageScript.js' },
       ],
     }),
   ],
